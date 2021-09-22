@@ -1,0 +1,44 @@
+{
+  "npmScope": "dynamic-load-component",
+  "affected": {
+    "defaultBase": "master"
+  },
+  "implicitDependencies": {
+    "package.json": {
+      "dependencies": "*",
+      "devDependencies": "*"
+    },
+    ".eslintrc.json": "*"
+  },
+  "tasksRunnerOptions": {
+    "default": {
+      "runner": "@nrwl/workspace/tasks-runners/default",
+      "options": {
+        "cacheableOperations": ["build", "lint", "test", "e2e"]
+      }
+    }
+  },
+  "targetDependencies": {
+    "build": [
+      {
+        "target": "build",
+        "projects": "dependencies"
+      }
+    ]
+  },
+  "projects": {
+    "dlc": {
+      "tags": []
+    },
+    "dynamic-load-component": {
+      "tags": []
+    },
+    "dynamic-load-component-e2e": {
+      "tags": [],
+      "implicitDependencies": ["dynamic-load-component"]
+    },
+    "type-guard": {
+      "tags": []
+    }
+  }
+}

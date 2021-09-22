@@ -1,0 +1,209 @@
+{
+  "version": 1,
+  "projects": {
+    "dlc": {
+      "projectType": "library",
+      "root": "libs/dlc",
+      "sourceRoot": "libs/dlc/src",
+      "prefix": "dynamic-load-component",
+      "architect": {
+        "test": {
+          "builder": "@nrwl/jest:jest",
+          "outputs": ["coverage/libs/dlc"],
+          "options": {
+            "jestConfig": "libs/dlc/jest.config.js",
+            "passWithNoTests": true
+          }
+        },
+        "lint": {
+          "builder": "@nrwl/linter:eslint",
+          "options": {
+            "lintFilePatterns": [
+              "libs/dlc/src/**/*.ts",
+              "libs/dlc/src/**/*.html"
+            ]
+          }
+        }
+      }
+    },
+    "dynamic-load-component": {
+      "projectType": "application",
+      "root": "apps/dynamic-load-component",
+      "sourceRoot": "apps/dynamic-load-component/src",
+      "prefix": "dynamic-load-component",
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:browser",
+          "outputs": ["{options.outputPath}"],
+          "options": {
+            "outputPath": "dist/apps/dynamic-load-component",
+            "index": "apps/dynamic-load-component/src/index.html",
+            "main": "apps/dynamic-load-component/src/main.ts",
+            "polyfills": "apps/dynamic-load-component/src/polyfills.ts",
+            "tsConfig": "apps/dynamic-load-component/tsconfig.app.json",
+            "inlineStyleLanguage": "scss",
+            "assets": [
+              "apps/dynamic-load-component/src/favicon.ico",
+              "apps/dynamic-load-component/src/assets"
+            ],
+            "styles": ["apps/dynamic-load-component/src/styles.scss"],
+            "scripts": []
+          },
+          "configurations": {
+            "production": {
+              "budgets": [
+                {
+                  "type": "initial",
+                  "maximumWarning": "500kb",
+                  "maximumError": "1mb"
+                },
+                {
+                  "type": "anyComponentStyle",
+                  "maximumWarning": "2kb",
+                  "maximumError": "4kb"
+                }
+              ],
+              "fileReplacements": [
+                {
+                  "replace": "apps/dynamic-load-component/src/environments/environment.ts",
+                  "with": "apps/dynamic-load-component/src/environments/environment.prod.ts"
+                }
+              ],
+              "outputHashing": "all",
+              "statsJson": true
+            },
+            "development": {
+              "buildOptimizer": false,
+              "optimization": false,
+              "vendorChunk": true,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true,
+              "statsJson": true
+            }
+          },
+          "defaultConfiguration": "production"
+        },
+        "serve": {
+          "builder": "@angular-devkit/build-angular:dev-server",
+          "configurations": {
+            "production": {
+              "browserTarget": "dynamic-load-component:build:production"
+            },
+            "development": {
+              "browserTarget": "dynamic-load-component:build:development"
+            }
+          },
+          "defaultConfiguration": "development"
+        },
+        "extract-i18n": {
+          "builder": "@angular-devkit/build-angular:extract-i18n",
+          "options": {
+            "browserTarget": "dynamic-load-component:build"
+          }
+        },
+        "lint": {
+          "builder": "@nrwl/linter:eslint",
+          "options": {
+            "lintFilePatterns": [
+              "apps/dynamic-load-component/src/**/*.ts",
+              "apps/dynamic-load-component/src/**/*.html"
+            ]
+          }
+        },
+        "test": {
+          "builder": "@nrwl/jest:jest",
+          "outputs": ["coverage/apps/dynamic-load-component"],
+          "options": {
+            "jestConfig": "apps/dynamic-load-component/jest.config.js",
+            "passWithNoTests": true
+          }
+        }
+      }
+    },
+    "dynamic-load-component-e2e": {
+      "root": "apps/dynamic-load-component-e2e",
+      "sourceRoot": "apps/dynamic-load-component-e2e/src",
+      "projectType": "application",
+      "architect": {
+        "e2e": {
+          "builder": "@nrwl/cypress:cypress",
+          "options": {
+            "cypressConfig": "apps/dynamic-load-component-e2e/cypress.json",
+            "devServerTarget": "dynamic-load-component:serve:development",
+            "tsConfig": "apps/dynamic-load-component-e2e/tsconfig.json"
+          },
+          "configurations": {
+            "production": {
+              "devServerTarget": "dynamic-load-component:serve:production"
+            }
+          }
+        },
+        "lint": {
+          "builder": "@nrwl/linter:eslint",
+          "outputs": ["{options.outputFile}"],
+          "options": {
+            "lintFilePatterns": ["apps/dynamic-load-component-e2e/**/*.{js,ts}"]
+          }
+        }
+      }
+    },
+    "type-guard": {
+      "projectType": "library",
+      "root": "libs/type-guard",
+      "sourceRoot": "libs/type-guard/src",
+      "prefix": "dynamic-load-component",
+      "architect": {
+        "test": {
+          "builder": "@nrwl/jest:jest",
+          "outputs": ["coverage/libs/type-guard"],
+          "options": {
+            "jestConfig": "libs/type-guard/jest.config.js",
+            "passWithNoTests": true
+          }
+        },
+        "lint": {
+          "builder": "@nrwl/linter:eslint",
+          "options": {
+            "lintFilePatterns": [
+              "libs/type-guard/src/**/*.ts",
+              "libs/type-guard/src/**/*.html"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "cli": {
+    "defaultCollection": "@nrwl/angular",
+    "packageManager": "npm"
+  },
+  "schematics": {
+    "@nrwl/angular": {
+      "application": {
+        "linter": "eslint"
+      },
+      "library": {
+        "linter": "eslint"
+      },
+      "storybook-configuration": {
+        "linter": "eslint"
+      }
+    },
+    "@nrwl/angular:application": {
+      "style": "scss",
+      "linter": "eslint",
+      "unitTestRunner": "jest",
+      "e2eTestRunner": "cypress"
+    },
+    "@nrwl/angular:library": {
+      "style": "scss",
+      "linter": "eslint",
+      "unitTestRunner": "jest"
+    },
+    "@nrwl/angular:component": {
+      "style": "scss"
+    }
+  },
+  "defaultProject": "dynamic-load-component"
+}
