@@ -304,7 +304,6 @@ export class DlcDirective implements OnInit, OnDestroy, OnChanges {
           takeUntil(this.#onDestroy$)
         )
         .subscribe(([previousValue, currentValue]) => {
-          console.log(previousValue, currentValue);
           const componentChanges = this.makeComponentChanges(
             new SimpleChange(
               { ...this.dynamicStaticInputs, ...previousValue },

@@ -1,5 +1,4 @@
-import { DlcOutput } from '@dynamic-load-component/dlc';
-import { DLC__OUTPUTS_CONFIGS, DlcOutputConfig } from './dlc-output.decorator';
+import { DLC__OUTPUTS_CONFIGS, DlcOutput, DlcOutputConfig } from './dlc-output.decorator';
 
 const testFn1Name = 'testFn1';
 const testFn2Name = 'testFn2';
@@ -10,8 +9,10 @@ describe('DlcOutput decorator', () => {
   it('test', () => {
     class Host {
       @DlcOutput(outputName)
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       [testFn1Name]() {}
       @DlcOutput(outputName, cmpId)
+      // eslint-disable-next-line @typescript-eslint/no-empty-function
       [testFn2Name]() {}
     }
 

@@ -24,6 +24,8 @@ import {
   ToManyDynamicStaticInputsHostComponent,
 } from './test/dlc-directive-test-components';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 describe('DynamicLoadComponentDirective', () => {
   describe('One dlc in view', () => {
     describe('Input configs', () => {
