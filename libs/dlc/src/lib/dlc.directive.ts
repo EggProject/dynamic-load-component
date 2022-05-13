@@ -78,13 +78,12 @@ export class DlcDirective implements OnInit, OnDestroy, OnChanges {
   /**
    * hot streams auto unsubscribes
    */
-  #onDestroy$ = new Subject();
+  #onDestroy$ = new Subject<void>();
   #componentFactory?: ComponentFactory<any>;
   #componentRef?: ComponentRef<any>;
   #viewContainerRef: ViewContainerRef;
   #componentFactoryResolver: ComponentFactoryResolver;
   #injector: Injector;
-  #el?: ElementRef;
   #hostComponentRef?: Type<any>;
   /**
    * `DlcInput` decoratorral ellatot inputok erteket taroljuk benne.
@@ -104,13 +103,11 @@ export class DlcDirective implements OnInit, OnDestroy, OnChanges {
     componentFactoryResolver: ComponentFactoryResolver,
     injector: Injector,
     @Optional() @Inject(DLC_HOST_COMPONENT) hostComponentRef?: Type<any>,
-    @Optional() el?: ElementRef
   ) {
     this.#viewContainerRef = viewContainerRef;
     this.#componentFactoryResolver = componentFactoryResolver;
     this.#injector = injector;
     this.#hostComponentRef = hostComponentRef;
-    this.#el = el;
   }
 
   ngOnInit() {
