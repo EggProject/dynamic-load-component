@@ -9,3 +9,4 @@ TODO
 
 - nomralis doksi kinezet
 - use native input az outputs
+- coverage to 100%

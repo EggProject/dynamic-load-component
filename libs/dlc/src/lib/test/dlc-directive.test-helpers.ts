@@ -34,6 +34,11 @@ export class DynamicContentHostModule {}
 @DlcBootstrapComponent(DynamicContentHostComponent)
 export class DynamicContentHostModule2 {}
 
+@NgModule({
+  declarations: [DynamicContentHostComponent],
+})
+export class DynamicContentHostModuleWithoutDlcBootstrapComponentDecorator {}
+
 @Component({
   selector: dynamicContentSelector,
   template: `<div [attr.id]="id3" (click)="testEvent.emit()">{{ testText }}</div>

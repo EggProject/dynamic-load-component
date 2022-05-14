@@ -3,7 +3,11 @@
 import { Component } from '@angular/core';
 import { DlcInput } from '../decorator/dlc-input/dlc-input.decorator';
 import { setDlcHostComponentProvider } from '../type';
-import { DynamicContent2HostComponent, DynamicContentHostComponent } from './dlc-directive.test-helpers';
+import {
+  DynamicContent2HostComponent,
+  DynamicContentHostComponent,
+  DynamicContentHostModuleWithoutDlcBootstrapComponentDecorator,
+} from './dlc-directive.test-helpers';
 
 @Component({
   // eslint-disable-next-line @angular-eslint/component-selector
@@ -67,8 +71,7 @@ export class InputConfigsDynamicStaticInputsHostComponent {
   providers: [setDlcHostComponentProvider(InputConfigsDynamicInputsWithDlcInputDecoratorHostComponent)],
 })
 export class InputConfigsDynamicInputsWithDlcInputDecoratorHostComponent {
-  @DlcInput()
-  testText = 'ertek';
+  @DlcInput() testText = 'ertek';
   dynamicModule = () => import('./dlc-directive.test-helpers').then((m) => m.DynamicContentHostModule2);
 }
 
@@ -85,8 +88,7 @@ export class InputConfigsDynamicInputsWithDlcInputDecoratorHostComponent {
   ],
 })
 export class InputConfigsDynamicStaticInputsAndDynamicInputsWithDlcInputDecoratorHostComponent {
-  @DlcInput()
-  testText = 'ertek';
+  @DlcInput() testText = 'ertek';
   staticInputs = { testText2: 'ertek' };
   dynamicModule = () => import('./dlc-directive.test-helpers').then((m) => m.DynamicContentHostModule2);
 }
@@ -152,8 +154,7 @@ export class ToManyDynamicStaticInputsHostComponent {
   providers: [setDlcHostComponentProvider(ToManyDynamicStaticInputsAndDynamicInputsWithDlcInputDecoratorHostComponent)],
 })
 export class ToManyDynamicStaticInputsAndDynamicInputsWithDlcInputDecoratorHostComponent {
-  @DlcInput()
-  testText = 'ertek';
+  @DlcInput() testText = 'ertek';
   staticInputs = { testText2: 'ertek' };
   dynamicModule1 = () => import('./dlc-directive.test-helpers').then((m) => m.DynamicContentHostModule2);
   dynamicModule2 = () => import('./dlc-directive.test-helpers').then((m) => m.DynamicContentHostModule4);
@@ -169,12 +170,31 @@ export class ToManyDynamicStaticInputsAndDynamicInputsWithDlcInputDecoratorHostC
 export class ToManyDynamicInputsWithDlcInputDecoratorHostComponent {
   id1 = 'id1';
   id2 = 'id2';
-  @DlcInput()
-  testText = 'ertek';
-  @DlcInput('id1', 'testText2')
-  testText2_1 = 'ertek';
-  @DlcInput('id2', 'testText2')
-  testText2_2 = 'ertek';
+  @DlcInput() testText = 'ertek';
+  @DlcInput('id1', 'testText2') testText2_1 = 'ertek';
+  @DlcInput('id2', 'testText2') testText2_2 = 'ertek';
   dynamicModule1 = () => import('./dlc-directive.test-helpers').then((m) => m.DynamicContentHostModule2);
   dynamicModule2 = () => import('./dlc-directive.test-helpers').then((m) => m.DynamicContentHostModule4);
+}
+
+@Component({
+  // eslint-disable-next-line @angular-eslint/component-selector
+  selector: 'component-input-host',
+  template: `<ng-template dynamicLoadComponent [dynamicComponent]="dynamicComponentRef1" [dynamicId]="id"></ng-template>
+    <ng-template dynamicLoadComponent [dynamicComponent]="dynamicComponentRef2" [dynamicId]="id"></ng-template>`,
+})
+export class ToManyDynamicComponentCheckUniqIdHostComponent {
+  id = 'id';
+  dynamicComponentRef1 = DynamicContentHostComponent;
+  dynamicComponentRef2 = DynamicContent2HostComponent;
+}
+
+@Component({
+  // eslint-disable-next-line @angular-eslint/component-selector
+  selector: 'component-input-host',
+  template: `<ng-template dynamicLoadComponent [dynamicModule]="dynamicModule1"></ng-template>`,
+})
+export class ToManyDynamicComponentCheckWithoutDlcBootstrapComponentDecoratorHostComponent {
+  dynamicModule1 = () =>
+    import('./dlc-directive.test-helpers').then((m) => m.DynamicContentHostModuleWithoutDlcBootstrapComponentDecorator);
 }

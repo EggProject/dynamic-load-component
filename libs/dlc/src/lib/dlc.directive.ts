@@ -37,6 +37,10 @@ let id = 0;
 
 const liveIds: string[] = [];
 
+export const generateErrorMessageDuplicateIds = (id: string) => `Duplicated ids => ${id}`;
+export const NOT_FOUND_DLC_BOOTSTRAP_COMPONENT_OR_DYNAMIC_COMPONENT =
+  'Not found DlcBootstrapComponent or dynamicComponent';
+
 /**
  * TODO dynamicOutput
  * TODO comment code
@@ -85,7 +89,7 @@ export class DlcDirective<C = any> implements OnInit, OnDestroy, OnChanges {
   #componentRef!: ComponentRef<C>;
   #viewContainerRef: ViewContainerRef;
   #injector: Injector;
-  #hostComponentRef?: Type<any>;
+  #hostComponentRef?: Type<C>;
   /**
    * `DlcInput` decoratorral ellatot inputok erteket taroljuk benne.
    */
@@ -114,7 +118,7 @@ export class DlcDirective<C = any> implements OnInit, OnDestroy, OnChanges {
     // generate unique id
     this.#id = this.dynamicId ?? `${id++}`;
     if (liveIds.indexOf(this.#id) > -1) {
-      throw new Error(`Duplicated ids => ${this.#id}`);
+      throw new Error(generateErrorMessageDuplicateIds(this.#id));
     }
     liveIds.push(this.#id);
   }
@@ -128,12 +132,12 @@ export class DlcDirective<C = any> implements OnInit, OnDestroy, OnChanges {
 
     if (shouldCreateNewComponent) {
       let componentRefPromise: Promise<Type<any>>;
-      if (typeof this.dynamicModule === 'function') {
+      if (isFunction(this.dynamicModule)) {
         // lazy load with module
         componentRefPromise = this.dynamicModule().then((_module) => {
           const module = isDlcModule(_module) ? Reflect.get(_module, DLC__BOOTSTRAP_COMPONENT) : this.dynamicComponent;
           if (isNil(module)) {
-            throw new Error('Not found DlcBootstrapComponent or dynamicComponent');
+            throw new Error(NOT_FOUND_DLC_BOOTSTRAP_COMPONENT_OR_DYNAMIC_COMPONENT);
           }
           return module;
         });
@@ -238,7 +242,7 @@ export class DlcDirective<C = any> implements OnInit, OnDestroy, OnChanges {
 
   private initDynamicOutputs() {
     this.readAndIterateDynamicOutputsValues((conf) => {
-      if (isNil(conf?.cmpId) || conf.cmpId === this.#id) {
+      if ((isNil(conf?.cmpId) || conf.cmpId === this.#id) && !isNil(this.#hostComponentRef)) {
         // eslint-disable-next-line @typescript-eslint/ban-ts-comment
         // @ts-ignore
         this.#dynamicOutputs[conf.outputName] = this.#hostComponentRef[conf.methodName];
@@ -249,7 +253,7 @@ export class DlcDirective<C = any> implements OnInit, OnDestroy, OnChanges {
 
   private validateAndBindOutputs() {
     assertNotNullOrUndefined(this.#componentRef);
-    this.finifshOutputsSubscription();
+    this.finishOutputsSubscription();
 
     const outputs = { ...(this.dynamicStaticOutputs ?? {}), ...this.#dynamicOutputs };
     if (Object.keys(outputs).length > 0) {
@@ -281,7 +285,7 @@ export class DlcDirective<C = any> implements OnInit, OnDestroy, OnChanges {
           });
           initDynamicInputsValue[propertyKey] = (this.#hostComponentRef as any)[originalPropertyKey];
         } else {
-          throw new Error(`Not found DlcInput binded input => ${originalPropertyKey}`);
+          throw new Error(`Not found DlcInput input => ${originalPropertyKey}`);
         }
       }
     });
@@ -401,7 +405,6 @@ export class DlcDirective<C = any> implements OnInit, OnDestroy, OnChanges {
         .pipe(takeUntil(this.#outputsDestroy$))
         .subscribe({
           next: (event: unknown) => {
-            console.log('miert igy kezeljuk az output-t?');
             const handler = userOutputs[tplOutputKey];
             if (handler) {
               // in case the output has not been provided at all
@@ -494,10 +497,10 @@ export class DlcDirective<C = any> implements OnInit, OnDestroy, OnChanges {
   private destroyComponent(recreateOutputsDestroy = true) {
     this.#componentRef?.destroy();
     this.#viewContainerRef.clear();
-    this.finifshOutputsSubscription(recreateOutputsDestroy);
+    this.finishOutputsSubscription(recreateOutputsDestroy);
   }
 
-  private finifshOutputsSubscription(recreateOutputsDestroy = true) {
+  private finishOutputsSubscription(recreateOutputsDestroy = true) {
     this.#outputsDestroy$.next();
     this.#outputsDestroy$.complete();
     if (recreateOutputsDestroy === true) {

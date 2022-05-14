@@ -18,18 +18,24 @@ import {
   InputConfigsDynamicOutputsHostComponent,
   InputConfigsDynamicStaticInputsAndDynamicInputsWithDlcInputDecoratorHostComponent,
   InputConfigsDynamicStaticInputsHostComponent,
+  ToManyDynamicComponentCheckUniqIdHostComponent,
+  ToManyDynamicComponentCheckWithoutDlcBootstrapComponentDecoratorHostComponent,
   ToManyDynamicComponentHostComponent,
   ToManyDynamicInputsWithDlcInputDecoratorHostComponent,
   ToManyDynamicStaticInputsAndDynamicInputsWithDlcInputDecoratorHostComponent,
   ToManyDynamicStaticInputsHostComponent,
 } from './test/dlc-directive-test-components';
+import {
+  generateErrorMessageDuplicateIds,
+  NOT_FOUND_DLC_BOOTSTRAP_COMPONENT_OR_DYNAMIC_COMPONENT,
+} from './dlc.directive';
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 describe('DynamicLoadComponentDirective', () => {
   describe('One dlc in view', () => {
     describe('Input configs', () => {
-      describe.skip('dynamicComponent', () => {
+      describe('dynamicComponent', () => {
         let spectator: Spectator<InputConfigsDynamicComponentHostComponent>;
 
         const createComponent = createComponentFactory({
@@ -51,7 +57,7 @@ describe('DynamicLoadComponentDirective', () => {
         });
       });
 
-      describe.skip('dynamicComponentLazy', () => {
+      describe('dynamicComponentLazy', () => {
         let spectator: Spectator<InputConfigsDynamicComponentLazyHostComponent>;
 
         const createComponent = createComponentFactory({
@@ -70,7 +76,7 @@ describe('DynamicLoadComponentDirective', () => {
         });
       });
 
-      describe.skip('dynamicModule with dynamicComponent', () => {
+      describe('dynamicModule with dynamicComponent', () => {
         let spectator: Spectator<InputConfigsDynamicModuleWithDynamicComponentHostComponent>;
 
         const createComponent = createComponentFactory({
@@ -89,7 +95,7 @@ describe('DynamicLoadComponentDirective', () => {
         });
       });
 
-      describe.skip('dynamicModule', () => {
+      describe('dynamicModule', () => {
         let spectator: Spectator<InputConfigsDynamicModuleHostComponent>;
 
         const createComponent = createComponentFactory({
@@ -427,6 +433,54 @@ describe('DynamicLoadComponentDirective', () => {
             );
           });
         }));
+      });
+    });
+
+    describe('Others', () => {
+      describe('Uniq id', () => {
+        let spectator: Spectator<ToManyDynamicComponentCheckUniqIdHostComponent>;
+
+        const createComponent = createComponentFactory({
+          disableAnimations: true,
+          detectChanges: false,
+          component: ToManyDynamicComponentCheckUniqIdHostComponent,
+          imports: [DlcModule],
+        });
+
+        beforeEach(() => {
+          spectator = createComponent();
+        });
+
+        it('check duplicate id', () => {
+          try {
+            spectator.detectChanges();
+          } catch (e: any) {
+            expect(generateErrorMessageDuplicateIds(spectator.component.id)).toEqual(e.message);
+          }
+        });
+      });
+    });
+
+    describe('Use NgModule without dlc bootstrap component', () => {
+      let spectator: Spectator<ToManyDynamicComponentCheckWithoutDlcBootstrapComponentDecoratorHostComponent>;
+
+      const createComponent = createComponentFactory({
+        disableAnimations: true,
+        detectChanges: false,
+        component: ToManyDynamicComponentCheckWithoutDlcBootstrapComponentDecoratorHostComponent,
+        imports: [DlcModule],
+      });
+
+      beforeEach(() => {
+        spectator = createComponent();
+      });
+
+      it('check error', () => {
+        try {
+          spectator.detectChanges();
+        } catch (e: any) {
+          expect(NOT_FOUND_DLC_BOOTSTRAP_COMPONENT_OR_DYNAMIC_COMPONENT).toEqual(e.message);
+        }
       });
     });
   });
