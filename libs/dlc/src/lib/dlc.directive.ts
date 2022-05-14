@@ -1,26 +1,22 @@
 import {
-  ComponentFactory,
-  ComponentFactoryResolver,
   ComponentRef,
   Directive,
-  ElementRef,
   EventEmitter,
   Inject,
   Injector,
   Input,
-  NgZone,
   OnChanges,
   OnDestroy,
   OnInit,
   Optional,
+  Output,
   SimpleChange,
   SimpleChanges,
   Type,
   ViewContainerRef,
 } from '@angular/core';
-import { BehaviorSubject, Subject, Subscription } from 'rxjs';
+import { BehaviorSubject, Observable, Subject, Subscription } from 'rxjs';
 import { distinctUntilChanged, pairwise, skip, startWith, takeUntil } from 'rxjs/operators';
-import { ComponentInputs, ComponentOutputs, DLC_HOST_COMPONENT, Inputs, Outputs } from './type';
 import { isImplementedNgOnChanges } from './helper';
 import { isFunction, isNil } from '@dynamic-load-component/type-guard';
 import { deepEqual } from './temp/deep-equal';
@@ -28,6 +24,8 @@ import { DLC__INPUTS_CONFIGS, DlcInputConfig } from './decorator/dlc-input/dlc-i
 import { DLC__BOOTSTRAP_COMPONENT } from './decorator/dlc-bootstrap-component/dlc-bootstrap-component.decorator';
 import { isDlcModule } from './module/dlc-module-type';
 import { DLC__OUTPUTS_CONFIGS, DlcOutputConfig } from './decorator/dlc-output/dlc-output.decorator';
+import { DirectiveDef, getSuperType } from './angular/private/get-super-type';
+import { DLC_HOST_COMPONENT, UserInputs, UserOutputs } from './type';
 
 let id = 0;
 /**
@@ -39,11 +37,14 @@ let id = 0;
 
 const liveIds: string[] = [];
 
-// TODO dynamicOutput
+/**
+ * TODO dynamicOutput
+ * TODO comment code
+ */
 @Directive({
   selector: '[dynamicLoadComponent]',
 })
-export class DlcDirective implements OnInit, OnDestroy, OnChanges {
+export class DlcDirective<C = any> implements OnInit, OnDestroy, OnChanges {
   @Input() dynamicId?: string;
   /**
    * Sima component betoltes
@@ -63,7 +64,7 @@ export class DlcDirective implements OnInit, OnDestroy, OnChanges {
    * `()=>import('modulepath').then(m=>m.MODULE)`
    */
   @Input() dynamicModule!: () => Promise<any>;
-  @Input() dynamicStaticOutputs?: Outputs = {};
+  @Input() dynamicStaticOutputs?: UserOutputs = {};
   /**
    * Amikor csak fix ertekeket akarunk atadni.
    *
@@ -72,17 +73,17 @@ export class DlcDirective implements OnInit, OnDestroy, OnChanges {
    * a dynamic component-nek, de ahhoz mindig uj objektum ref-et kell atadni,
    * ami felhasznaloi oldalrol nem biztos hogy mindig kenyelmes.
    */
-  @Input() dynamicStaticInputs?: Inputs = {};
+  @Input() dynamicStaticInputs?: UserInputs = {};
+
+  @Output() componentRef = new EventEmitter<any>();
 
   #id!: string;
   /**
    * hot streams auto unsubscribes
    */
   #onDestroy$ = new Subject<void>();
-  #componentFactory?: ComponentFactory<any>;
-  #componentRef?: ComponentRef<any>;
+  #componentRef!: ComponentRef<C>;
   #viewContainerRef: ViewContainerRef;
-  #componentFactoryResolver: ComponentFactoryResolver;
   #injector: Injector;
   #hostComponentRef?: Type<any>;
   /**
@@ -96,16 +97,15 @@ export class DlcDirective implements OnInit, OnDestroy, OnChanges {
   #initedDynamicInputsAndOutputs = false;
   #outputsDestroy$ = new Subject<void>();
   #dynamicOutputs: Record<string, (event: unknown) => void> = {};
+  #cmpDefinedInputs: DirectiveDef<C>['inputs'] | null = null;
+  #cmpDefinedOutputs: DirectiveDef<C>['outputs'] | null = null;
 
   constructor(
-    private ngZone: NgZone,
     viewContainerRef: ViewContainerRef,
-    componentFactoryResolver: ComponentFactoryResolver,
     injector: Injector,
-    @Optional() @Inject(DLC_HOST_COMPONENT) hostComponentRef?: Type<any>,
+    @Optional() @Inject(DLC_HOST_COMPONENT) hostComponentRef?: Type<any>
   ) {
     this.#viewContainerRef = viewContainerRef;
-    this.#componentFactoryResolver = componentFactoryResolver;
     this.#injector = injector;
     this.#hostComponentRef = hostComponentRef;
   }
@@ -155,6 +155,7 @@ export class DlcDirective implements OnInit, OnDestroy, OnChanges {
         const staticInputs = this.initInputsAndOutputs(changes);
         componentChanges = this.makeComponentChanges(staticInputs, true);
         this.commonProcessOnChanges(changes, componentChanges, true);
+        this.componentRef.emit(this.#componentRef?.instance);
       });
     } else {
       // ha static input valtozik akkor emulaljuk az onchanges esemenyeket
@@ -247,25 +248,28 @@ export class DlcDirective implements OnInit, OnDestroy, OnChanges {
   }
 
   private validateAndBindOutputs() {
-    assertNotNullOrUndefined(this.#componentFactory);
     assertNotNullOrUndefined(this.#componentRef);
     this.finifshOutputsSubscription();
 
     const outputs = { ...(this.dynamicStaticOutputs ?? {}), ...this.#dynamicOutputs };
     if (Object.keys(outputs).length > 0) {
-      this.validateOutputs(this.#componentFactory.outputs, outputs, this.#componentRef.instance);
-      this.bindOutputs(this.#componentFactory.outputs, outputs, this.#componentRef.instance);
+      this.validateOutputs(this.#cmpDefinedOutputs, outputs, this.#componentRef.instance);
+      this.bindOutputs(this.#cmpDefinedOutputs, outputs, this.#componentRef.instance);
     }
   }
 
+  /**
+   * DlcInput -ok felolvasasa
+   */
   private initDynamicInputs() {
     const initDynamicInputsValue: Record<string, unknown> = {};
-    const cmpInputs = this.#componentFactory?.inputs ?? [];
-
     this.readAndIterateDynamicInputsValues((conf) => {
       const { changeCallbacks, originalPropertyKey, propertyKey, cmpId } = conf;
       if (isNil(cmpId) || cmpId === this.#id) {
-        if (cmpInputs.some((cmpInput) => cmpInput.templateName === propertyKey)) {
+        /**
+         * Megnezzuk hogy letezik-e az input
+         */
+        if (Object.prototype.hasOwnProperty.call(this.#cmpDefinedInputs, propertyKey)) {
           // Attach(bind) dynamic input handler
           changeCallbacks.push({
             id: this.#id,
@@ -300,16 +304,18 @@ export class DlcDirective implements OnInit, OnDestroy, OnChanges {
           skip(1),
           takeUntil(this.#onDestroy$)
         )
-        .subscribe(([previousValue, currentValue]) => {
-          const componentChanges = this.makeComponentChanges(
-            new SimpleChange(
-              { ...this.dynamicStaticInputs, ...previousValue },
-              { ...this.dynamicStaticInputs, ...currentValue },
-              false
-            )
-          );
+        .subscribe({
+          next: ([previousValue, currentValue]) => {
+            const componentChanges = this.makeComponentChanges(
+              new SimpleChange(
+                { ...this.dynamicStaticInputs, ...previousValue },
+                { ...this.dynamicStaticInputs, ...currentValue },
+                false
+              )
+            );
 
-          this.commonProcessOnChanges(undefined, componentChanges);
+            this.commonProcessOnChanges(undefined, componentChanges);
+          },
         });
     }
   }
@@ -322,13 +328,12 @@ export class DlcDirective implements OnInit, OnDestroy, OnChanges {
     componentChanges?: Record<string, SimpleChange>,
     firstChange = false
   ) {
-    assertNotNullOrUndefined(this.#componentFactory);
     assertNotNullOrUndefined(this.#componentRef);
 
     if (!isNil(componentChanges) && Object.keys(componentChanges).length > 0) {
-      this.validateInputs(this.#componentFactory.inputs, this.dynamicStaticInputs ?? {});
+      this.validateInputs(this.#cmpDefinedInputs, this.dynamicStaticInputs ?? {});
       this.bindInputs(
-        this.#componentFactory.inputs,
+        this.#cmpDefinedInputs,
         Object.entries(componentChanges).reduce((curr, next) => {
           curr[next[0]] = next[1].currentValue;
           return curr;
@@ -371,53 +376,92 @@ export class DlcDirective implements OnInit, OnDestroy, OnChanges {
   /**
    * On the fly create component by component reference
    */
-  private createComponent(cmp: Type<any>) {
-    this.#componentFactory = this.#componentFactoryResolver.resolveComponentFactory(cmp);
-    this.#componentRef = this.#viewContainerRef.createComponent<any>(this.#componentFactory, undefined, this.#injector);
+  private createComponent(cmp: Type<C>) {
+    this.#componentRef = this.#viewContainerRef.createComponent(cmp, { injector: this.#injector });
+    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+    const { inputs, outputs } = getSuperType<C>(this.#componentRef.componentType).ɵcmp!;
+    this.#cmpDefinedInputs = inputs;
+    this.#cmpDefinedOutputs = outputs;
   }
 
-  private bindOutputs(componentOutputs: ComponentInputs, userOutputs: Outputs, componentInstance: any) {
-    componentOutputs.forEach((output) =>
-      (componentInstance[output.propName] as EventEmitter<never>)
+  private bindOutputs(
+    componentOutputs: DirectiveDef<C>['inputs'] | null,
+    userOutputs: UserOutputs,
+    componentInstance: any
+  ) {
+    if (componentOutputs === null) {
+      if (Object.keys(userOutputs).length === 0) {
+        // TODO ez ne csak warning legyen?
+        throw new Error('Not found component outputs, but declared user outputs');
+      }
+      return;
+    }
+    (Object.keys(componentOutputs) as Extract<keyof DirectiveDef<C>['outputs'], string>[]).forEach((tplOutputKey) =>
+      (componentInstance[componentOutputs[tplOutputKey]] as EventEmitter<never>)
         .pipe(takeUntil(this.#outputsDestroy$))
-        .subscribe((event: unknown) => {
-          const handler = userOutputs[output.templateName];
-          if (handler) {
-            // in case the output has not been provided at all
-            handler.call(this.#componentRef?.instance, event);
-          }
+        .subscribe({
+          next: (event: unknown) => {
+            console.log('miert igy kezeljuk az output-t?');
+            const handler = userOutputs[tplOutputKey];
+            if (handler) {
+              // in case the output has not been provided at all
+              handler.call(this.#componentRef?.instance, event);
+            }
+          },
         })
     );
   }
 
-  private bindInputs(componentInputs: ComponentInputs, userInputs: Inputs, componentInstance: any) {
+  private bindInputs(
+    componentInputs: DirectiveDef<C>['inputs'] | null,
+    userInputs: UserInputs,
+    componentInstance: any
+  ) {
+    if (componentInputs === null) {
+      if (Object.keys(userInputs).length === 0) {
+        // TODO ez ne csak warning legyen?
+        throw new Error('Not found component inputs, but declared user inputs');
+      }
+      return;
+    }
     const userInputsKeys = Object.keys(userInputs);
-    componentInputs
+    (Object.keys(componentInputs) as Extract<keyof DirectiveDef<C>['inputs'], string>[])
       .filter(
-        /*ha letezik a valtozasok kozott az input csak akkor foglalkozunk vele*/ (input) =>
-          userInputsKeys.indexOf(input.templateName) > -1
+        /*ha letezik a valtozasok kozott az input csak akkor foglalkozunk vele*/ (tplInputKey) =>
+          userInputsKeys.indexOf(tplInputKey) > -1
       )
-      .forEach((input) => {
-        componentInstance[input.propName] = userInputs[input.templateName];
-      });
+      .forEach((tplInputKey) => (componentInstance[componentInputs[tplInputKey]] = userInputs[tplInputKey]));
   }
 
-  private validateOutputs(componentOutputs: ComponentOutputs, userOutputs: Outputs, componentInstance: any) {
+  private validateOutputs(
+    componentOutputs: DirectiveDef<C>['outputs'] | null,
+    userOutputs: UserOutputs,
+    componentInstance: any
+  ) {
+    if (componentOutputs === null) {
+      if (Object.keys(userOutputs).length === 0) {
+        // TODO ez ne csak warning legyen?
+        throw new Error('Not found component outputs, but declared user outputs');
+      }
+      return;
+    }
     const userOutputsKeys = Object.keys(userOutputs);
-    componentOutputs
+    const tplOutputKeys = Object.keys(componentOutputs) as Extract<keyof DirectiveDef<C>['outputs'], string>[];
+    tplOutputKeys
       .filter(
-        /*ha letezik a valtozasok kozott az input csak akkor foglalkozunk vele*/ (output) =>
-          userOutputsKeys.indexOf(output.templateName) > -1
+        /*ha letezik a valtozasok kozott az input csak akkor foglalkozunk vele*/ (tplOutputKey) =>
+          userOutputsKeys.indexOf(tplOutputKey) > -1
       )
-      .forEach((output) => {
-        if (!(componentInstance[output.propName] instanceof EventEmitter)) {
-          throw new Error(`Output ${output.propName} must be a typeof EventEmitter`);
+      .forEach((tplOutputKey) => {
+        const tsOutputKey = componentOutputs[tplOutputKey];
+        if (!(componentInstance[tsOutputKey] instanceof Observable)) {
+          throw new Error(`Output ${tsOutputKey} must be a typeof EventEmitter`);
         }
       });
 
     const outputsKeys = Object.keys(userOutputs);
     outputsKeys.forEach((key) => {
-      const componentHaveThatOutput = componentOutputs.some((output) => output.templateName === key);
+      const componentHaveThatOutput = tplOutputKeys.some((tplOutputKey) => tplOutputKey === key);
       if (!componentHaveThatOutput) {
         throw new Error(`Output ${key} is not ${this.dynamicComponent.name} output.`);
       }
@@ -427,12 +471,20 @@ export class DlcDirective implements OnInit, OnDestroy, OnChanges {
     });
   }
 
-  private validateInputs(componentInputs: ComponentInputs, userInputs: Inputs) {
+  private validateInputs(componentInputs: DirectiveDef<C>['inputs'] | null, userInputs: UserInputs) {
+    if (componentInputs === null) {
+      if (Object.keys(userInputs).length === 0) {
+        // TODO ez ne csak warning legyen?
+        throw new Error('Not found component inputs, but declared user inputs');
+      }
+      return;
+    }
     const userInputsKeys = Object.keys(userInputs);
     userInputsKeys.forEach((userInputKey) => {
-      const componentHaveThatInput = componentInputs.some(
-        (componentInput) => componentInput.templateName === userInputKey
-      );
+      const componentHaveThatInput = (
+        Object.keys(componentInputs) as Extract<keyof DirectiveDef<C>['inputs'], string>[]
+      ).some((tplInputName) => tplInputName === userInputKey);
+
       if (!componentHaveThatInput) {
         throw new Error(`Input ${userInputKey} is not ${this.dynamicComponent.name} input.`);
       }

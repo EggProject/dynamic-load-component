@@ -1,9 +1,11 @@
-import { ComponentFactory, InjectionToken, Type } from '@angular/core';
+import { InjectionToken, Type } from '@angular/core';
 
-export type Outputs = Record<string, (event: unknown) => void>;
-export type Inputs = Record<string, unknown>;
-export type ComponentInputs = ComponentFactory<never>['inputs'];
-export type ComponentOutputs = ComponentFactory<never>['outputs'];
+export interface UserOutputs {
+  [key: string]: (event: unknown) => void;
+}
+export interface UserInputs {
+  [key: string]: unknown;
+}
 export const DLC_HOST_COMPONENT = new InjectionToken('DLC_HOST_COMPONENT');
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

@@ -29,7 +29,7 @@ import {
 describe('DynamicLoadComponentDirective', () => {
   describe('One dlc in view', () => {
     describe('Input configs', () => {
-      describe('dynamicComponent', () => {
+      describe.skip('dynamicComponent', () => {
         let spectator: Spectator<InputConfigsDynamicComponentHostComponent>;
 
         const createComponent = createComponentFactory({
@@ -51,7 +51,7 @@ describe('DynamicLoadComponentDirective', () => {
         });
       });
 
-      describe('dynamicComponentLazy', () => {
+      describe.skip('dynamicComponentLazy', () => {
         let spectator: Spectator<InputConfigsDynamicComponentLazyHostComponent>;
 
         const createComponent = createComponentFactory({
@@ -70,7 +70,7 @@ describe('DynamicLoadComponentDirective', () => {
         });
       });
 
-      describe('dynamicModule with dynamicComponent', () => {
+      describe.skip('dynamicModule with dynamicComponent', () => {
         let spectator: Spectator<InputConfigsDynamicModuleWithDynamicComponentHostComponent>;
 
         const createComponent = createComponentFactory({
@@ -89,7 +89,7 @@ describe('DynamicLoadComponentDirective', () => {
         });
       });
 
-      describe('dynamicModule', () => {
+      describe.skip('dynamicModule', () => {
         let spectator: Spectator<InputConfigsDynamicModuleHostComponent>;
 
         const createComponent = createComponentFactory({

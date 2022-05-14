@@ -14,11 +14,13 @@ import { timer } from 'rxjs';
 @Component({
   selector: 'dynamic-load-component-dynamic-content',
   templateUrl: './dynamic-content.component.html',
+  // TODO mukodik?
   // changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DynamicContentComponent implements OnInit, OnChanges, OnDestroy {
   @Input() title!: string;
   @Input() title2!: string;
+  @Input('asdasd') title3!: string;
   @Output() testOutput = new EventEmitter<number>();
 
   constructor(private cdr: ChangeDetectorRef) {

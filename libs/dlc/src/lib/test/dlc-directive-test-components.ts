@@ -1,8 +1,9 @@
 /* eslint-disable */
 
 import { Component } from '@angular/core';
+import { DlcInput } from '../decorator/dlc-input/dlc-input.decorator';
+import { setDlcHostComponentProvider } from '../type';
 import { DynamicContent2HostComponent, DynamicContentHostComponent } from './dlc-directive.test-helpers';
-import { DlcInput, setDlcHostComponentProvider } from '@dynamic-load-component/dlc';
 
 @Component({
   // eslint-disable-next-line @angular-eslint/component-selector

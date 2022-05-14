@@ -1,5 +1,10 @@
-<ng-template
-  dynamicLoadComponent
-  [dynamicComponent]="dynamicComponentRef"
-  [dynamicStaticInputs]="dynamicComponentRefInputs"
-></ng-template>
+<div>Host cmp dynamicComponentRefInputs: {{ dynamicComponentRefInputs | json }}</div>
+<hr />
+<fieldset class="dynamic-loaded-wrapper">
+  <legend>Dynamic loaded cmp</legend>
+  <ng-template
+    dynamicLoadComponent
+    [dynamicComponent]="dynamicComponentRef"
+    [dynamicStaticInputs]="dynamicComponentRefInputs"
+  ></ng-template>
+</fieldset>
